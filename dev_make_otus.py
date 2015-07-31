@@ -26,7 +26,7 @@ class ReadPair(object):
 		self.rev_read = rev_read
 		
 		self.fwd_adp, self.rev_adp = self.remove_adapters()
-		#self.merged = self.merge_reads()	
+		self.merged = self.merge_reads(self.fwd_adp, self.rev_adp)	
 
 
 	def trim_primers(self):
@@ -50,12 +50,12 @@ class ReadPair(object):
 		return (fwd_adp_out, rev_adp_out)
 		
 		
-	def merge_reads(self):
+	def merge_reads(self, fwd, rev):
 		"""Merge forward and reverse reads"""
-		merged_file = os.path.splitext(self.fwd_adp_out)[0] + '_merged.fastq'
+		merged_file = os.path.splitext(fwd)[0] + '_merged.fastq' #TODO fix filename
 		cmd = ['usearch', 
-				'--fastq_mergepairs', self.fwd_adp, 
-				'-reverse', self.rev_adp, 
+				'--fastq_mergepairs', fwd, 
+				'-reverse', rev, 
 				'-fastqout', merged_file, 
 				'-fastq_merge_maxee', '1.0']
 
