@@ -26,7 +26,7 @@ class ReadPair(object):
 		self.rev_read = rev_read
 		
 		self.fwd_adp, self.rev_adp = self.remove_adapters()
-		self.merged = self.merge_reads()	
+		#self.merged = self.merge_reads()	
 
 
 	def trim_primers(self):
@@ -36,35 +36,32 @@ class ReadPair(object):
 	def remove_adapters(self):
 	
 		fwd_adp_out = os.path.splitext(self.fwd_read)[0] + '_adp.fastq'
-    	rev_adp_out = os.path.splitext(self.rev_read)[0] + '_adp.fastq'
-	
+		rev_adp_out = os.path.splitext(self.rev_read)[0] + '_adp.fastq'	
 		cmd = ['cutadapt',
-				'-a', F_ADAPTER,
-				'-A', R_ADAPTER,
+				'-a', ReadPair.F_ADAPTER,
+				'-A', ReadPair.R_ADAPTER,
 				'-o', fwd_adp_out,
 				'-p', rev_adp_out,
 				'--discard-trimmed',
-				seld.fwd_read, self.rev_read]
+				self.fwd_read, self.rev_read]
+		p = subprocess.Popen(cmd)
+		p.wait()
 
-	    p = subprocess.Popen(cmd)
-    	p.wait()
-
-    	return (fwd_out, rev_out)
+		return (fwd_adp_out, rev_adp_out)
 		
 		
 	def merge_reads(self):
-	    """Merge forward and reverse reads"""
-
-    	merged_file = os.path.splitext(self.fwd_adp_out)[0] + '_merged.fastq'
-    	cmd = ['usearch', 
+		"""Merge forward and reverse reads"""
+		merged_file = os.path.splitext(self.fwd_adp_out)[0] + '_merged.fastq'
+		cmd = ['usearch', 
 				'--fastq_mergepairs', self.fwd_adp, 
 				'-reverse', self.rev_adp, 
 				'-fastqout', merged_file, 
 				'-fastq_merge_maxee', '1.0']
 
-    	p = subprocess.Popen(cmd)
-    	p.wait()
-    	return merged_file
+		p = subprocess.Popen(cmd)
+		p.wait()
+		return merged_file
  		
 
 

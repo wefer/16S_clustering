@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-#from dev_make_otus import ReadPair, CombinedReads
+from dev_make_otus import ReadPair, CombinedReads
 import sys
 import glob
 
