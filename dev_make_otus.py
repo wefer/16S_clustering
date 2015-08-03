@@ -62,30 +62,66 @@ class ReadPair(object):
 		p = subprocess.Popen(cmd)
 		p.wait()
 		return merged_file
- 		
+
 
 
 class CombinedReads(object):
+	"""Class for setting up the otus"""
 
 	def __init__(self):
-		pass
-
+		self.fasta = self.combine_merged_reads()
+		self.derep = self.dereplicate(self.fasta)
+		self.sorted = self.sort_reads(self.derep)
+		self.otus = self.cluster_otus(self.sorted)
 
 	def combine_merged_reads(self):
 		"""Get all the merged reads from the samples and concat them"""
+		
 		files = [x.merged for x in ReadPair.__all__]
-		pass
+
+		combined_fasta = 'all_seqs.fasta'
+
+		with open('all_seqs.fasta', 'w') as o:
+			for fname in files:
+				with open(fname) as f:
+					for line in f:
+						o.write(line)
+		
+		return combined_fasta
 
 
-	def dereplicate(self):
-		pass
+	def dereplicate(self, file):
+		"""Perform dereplication for usearch"""
+
+		derep_out = os.path.splitext(file)[0] + '_derep.fastq'
+
+		cmd = ['usearch', '-derep_fulllength', file, '-fastqout', derep_out, '-sizeout', '-minseqlength', '64']
+		p = subprocess.Popen(cmd)
+		p.wait()
+
+		return derep_out
 
 
-	def sort_reads(self):
-		pass
+	def sort_reads(self, file):
+		"""Perform sortbysize and remove singletons"""
+		sorted_out = os.path.splitext(file)[0] + '_sort.fastq'
 
-	
-	def cluster_otus(self):
-		pass
+		cmd = ['usearch', '-sortbysize', file, '-fastqout', sorted_out, '-minsize', '2']
+		p = subprocess.Popen(cmd)
+		p.wait()
 
+		return sorted_out
+
+	def cluster_otus(self, file, radius=3):
+		"""Perfor clustering with usearch"""
+
+		identity = str(100 - radius)
+		otus = 'otus_' + identity + '.fasta'
+		up_out = 'uparse_out.csv'
+
+		cmd = ['usearch', '-cluster_otus', file, '-otus', otus, '-uparseout', up_out, '-relabel', 'OTU_', '-sizein', '-sizeout']
+		p = subprocess.Popen(cmd)
+		p.wait()
+
+		return otus
 

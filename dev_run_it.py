@@ -15,7 +15,7 @@ def main(sample_folder):
 	paired = [(x, x.replace('_R1_', '_R2_')) for x in forwards]
 	
 	read_pairs = [ReadPair(*x) for x in paired]
-
+	otus = CombinedReads().otus
 main(sample_folder)
 	
 	
