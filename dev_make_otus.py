@@ -5,6 +5,7 @@ import magic
 import subprocess
 
 class ReadPair(object):
+	"""Read pair forward and reverse"""
 
 	__all__ = set()
 	
@@ -26,12 +27,29 @@ class ReadPair(object):
 		self.rev_read = rev_read
 		
 		self.fwd_adp, self.rev_adp = self.remove_adapters()
-		self.merged = self.merge_reads(self.fwd_adp, self.rev_adp)	
+		self.fwd_trim, self.rev_trim = self.trim_primers(self.fwd_adp, ReadPair.fwd_n_bases),  self.trim_primers(self.rev_adp, ReadPair.rev_n_bases)
+		self.merged = self.merge_reads(self.fwd_trim, self.rev_trim)	
 
 
-	def trim_primers(self):
-		pass
-
+	def trim_primers(self, infile, n_bases):
+	    """Trim away primer sequences (n number of bases at the beginning of the sequence)"""
+	
+	    outfile = os.path.splitext(infile)[0] + "_trim." + 'fastq'
+	
+	    with open(outfile,'w') as o:
+	            with open(infile, 'r') as f:
+	                flag = 0            #flag next line as sequence
+	                for line in f.readlines():
+	                    if flag == 0:
+	                        if "@HWI" in line or line == "+\n":
+	                            o.write(line)
+	                            flag = 1 
+	                    else:
+	                        o.write(line[n_bases:])
+	                        flag = 0 
+	        
+	    return outfile
+		
 
 	def remove_adapters(self):
 	
@@ -74,6 +92,7 @@ class CombinedReads(object):
 		self.sorted = self.sort_reads(self.derep)
 		self.otus = self.cluster_otus(self.sorted)
 
+
 	def combine_merged_reads(self):
 		"""Get all the merged reads from the samples and concat them"""
 		
@@ -111,6 +130,7 @@ class CombinedReads(object):
 		p.wait()
 
 		return sorted_out
+
 
 	def cluster_otus(self, file, radius=3):
 		"""Perfor clustering with usearch"""
