@@ -95,7 +95,7 @@ class ReadPair(object):
 			with open(fastq, 'r') as f: 
 				for line in f.readlines():
 					if line[:4] == "@HWI":
-						line = line.rstrip() + "barcodelabel={}\n".format(sampleid)
+						line = line.rstrip() + ";barcodelabel={}\n".format(sampleid)
 					o.write(line)   
 
 		return outfile
