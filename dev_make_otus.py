@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import os
-import magic
 import subprocess
 
 class ReadPair(object):
@@ -25,31 +24,34 @@ class ReadPair(object):
 
 		self.fwd_read = fwd_read
 		self.rev_read = rev_read
+
+		self.sampleid = os.path.basename(fwd_read).split('_')[0]
 		
 		self.fwd_adp, self.rev_adp = self.remove_adapters()
 		self.fwd_trim, self.rev_trim = self.trim_primers(self.fwd_adp, ReadPair.fwd_n_bases),  self.trim_primers(self.rev_adp, ReadPair.rev_n_bases)
-		self.merged = self.merge_reads(self.fwd_trim, self.rev_trim)	
+		self.merged = self.merge_reads(self.fwd_trim, self.rev_trim)
+		self.reheaded = self.add_barcode(self.merged, self.sampleid)
 
 
 	def trim_primers(self, infile, n_bases):
-	    """Trim away primer sequences (n number of bases at the beginning of the sequence)"""
-	
-	    outfile = os.path.splitext(infile)[0] + "_trim." + 'fastq'
-	
-	    with open(outfile,'w') as o:
-	            with open(infile, 'r') as f:
-	                flag = 0            #flag next line as sequence
-	                for line in f.readlines():
-	                    if flag == 0:
-	                        if "@HWI" in line or line == "+\n":
-	                            o.write(line)
-	                            flag = 1 
-	                    else:
-	                        o.write(line[n_bases:])
-	                        flag = 0 
-	        
-	    return outfile
-		
+		"""Trim away primer sequences (n number of bases at the beginning of the sequence)"""
+
+		outfile = os.path.splitext(infile)[0] + "_trim." + 'fastq'
+
+		with open(outfile,'w') as o:
+			with open(infile, 'r') as f:
+				flag = 0					#flag next line as sequence
+				for line in f.readlines():
+					if flag == 0:
+						if "@HWI" in line or line == "+\n":
+							o.write(line)
+							flag = 1 
+					else:
+						o.write(line[n_bases:])
+						flag = 0 
+      
+		return outfile
+
 
 	def remove_adapters(self):
 	
@@ -81,22 +83,41 @@ class ReadPair(object):
 		p.wait()
 		return merged_file
 
+	
+	def add_barcode(self, fastq, sampleid):
+		"""
+		Add sample ID in the fastq header
+		[originalheader];barcodelabel=[sample_id]
+		"""
+		outfile = os.path.splitext(fastq)[0] + '_rehead.fastq' 
+
+		with open(outfile, 'w') as o:
+			with open(fastq, 'r') as f: 
+				for line in f.readlines():
+					if line[:4] == "@HWI":
+						line = line.rstrip() + "barcodelabel={}\n".format(sampleid)
+					o.write(line)   
+
+		return outfile
+		
+
 
 
 class CombinedReads(object):
 	"""Class for setting up the otus"""
 
-	def __init__(self):
+	def __init__(self, radius=1):
+		self.radius = radius
 		self.fasta = self.combine_merged_reads()
 		self.derep = self.dereplicate(self.fasta)
 		self.sorted = self.sort_reads(self.derep)
-		self.otus = self.cluster_otus(self.sorted)
-
+		self.otus = self.cluster_otus(self.sorted, self.radius)
+		self.readmap = self.map_to_clusters(self.fasta, self.otus, self.radius)
 
 	def combine_merged_reads(self):
 		"""Get all the merged reads from the samples and concat them"""
 		
-		files = [x.merged for x in ReadPair.__all__]
+		files = [x.reheaded for x in ReadPair.__all__]
 
 		combined_fasta = 'all_seqs.fasta'
 
@@ -132,8 +153,8 @@ class CombinedReads(object):
 		return sorted_out
 
 
-	def cluster_otus(self, file, radius=3):
-		"""Perfor clustering with usearch"""
+	def cluster_otus(self, file, radius=1):
+		"""Perform clustering with usearch"""
 
 		identity = str(100 - radius)
 		otus = 'otus_' + identity + '.fasta'
@@ -144,4 +165,26 @@ class CombinedReads(object):
 		p.wait()
 
 		return otus
+
+	
+	def map_to_clusters(self, fasta, otus, radius):
+		"""Map the merged reads to the cluster centroids"""
+		
+		id = 1 - (float(radius)/100)
+		readmap = "readmap.uc"
+		cmd = ['usearch', '-usearch_global', fasta, '-db', otus, '-strand', 'both', '-id', str(id), '-uc', readmap, '-maxaccepts', '8', '-maxrejects', '64', '-top_hit_only']
+		
+		p = subprocess.Popen(cmd)
+		p.wait()
+
+		return readmap
+
+
+	def convert_to_otu_table(self, readmap):
+		"""Convert to a sensible format"""
+
+		pass #IMPLEMENT 
+
+
+
 
