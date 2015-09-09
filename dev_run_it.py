@@ -13,12 +13,16 @@ def main(sample_folder):
 
 	forwards = glob.glob(sample_folder + '*R1*.fastq')
 	paired = [(x, x.replace('_R1_', '_R2_')) for x in forwards]
-	
+
 	read_pairs = [ReadPair(*x) for x in paired]
-	otus = CombinedReads().otus
-main(sample_folder)
+	combined = CombinedReads()
 	
-	
+	for sample in read_pairs:
+		sample.cleanup()
+
+	combined.cleanup()
+		
 	
 
-
+if __name__ == "__main__":
+	main(sample_folder)

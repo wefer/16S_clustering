@@ -72,7 +72,7 @@ class ReadPair(object):
 		
 	def merge_reads(self, fwd, rev):
 		"""Merge forward and reverse reads"""
-		merged_file = os.path.splitext(fwd)[0] + '_merged.fastq' #TODO fix filename
+		merged_file = os.path.splitext(fwd)[0] + '_merged.fastq'
 		cmd = ['usearch', 
 				'--fastq_mergepairs', fwd, 
 				'-reverse', rev, 
@@ -99,9 +99,14 @@ class ReadPair(object):
 					o.write(line)   
 
 		return outfile
+	
+
+	def cleanup(self):
+		"""Remove all intermediate files create"""
 		
-
-
+		files = [self.fwd_adp, self.rev_adp, self.fwd_trim, self.rev_trim, self.merged, self.reheaded]
+		for file in files:
+			os.remove(file)
 
 class CombinedReads(object):
 	"""Class for setting up the otus"""
@@ -113,6 +118,8 @@ class CombinedReads(object):
 		self.sorted = self.sort_reads(self.derep)
 		self.otus = self.cluster_otus(self.sorted, self.radius)
 		self.readmap = self.map_to_clusters(self.fasta, self.otus, self.radius)
+		self.taxa = self.assign_taxa(self.otus)
+
 
 	def combine_merged_reads(self):
 		"""Get all the merged reads from the samples and concat them"""
@@ -172,7 +179,15 @@ class CombinedReads(object):
 		
 		id = 1 - (float(radius)/100)
 		readmap = "readmap.uc"
-		cmd = ['usearch', '-usearch_global', fasta, '-db', otus, '-strand', 'both', '-id', str(id), '-uc', readmap, '-maxaccepts', '8', '-maxrejects', '64', '-top_hit_only']
+		cmd = ['usearch',
+				'-usearch_global', fasta, 
+				'-db', otus, 
+				'-strand', 'both', 
+				'-id', str(id), 
+				'-uc', readmap, 
+				'-maxaccepts', '8', 
+				'-maxrejects', '64', 
+				'-top_hit_only']
 		
 		p = subprocess.Popen(cmd)
 		p.wait()
@@ -186,5 +201,27 @@ class CombinedReads(object):
 		pass #IMPLEMENT 
 
 
+	def assign_taxa(self, centroids):
+		"""Assign taxomony to centroid sequences using RDP"""
+		
+		outfile = "otu_taxonomy.csv" 
+		rdp_cls_binary = "/home/hugo.wefer/rdp_classifier_2.10.1/dist/classifier.jar" 
+		
+		cmd = ['java', '-jar', rdp_cls_binary, 'classify', centroids, '-o', outfile]
+		
+		p = subprocess.Popen(cmd)
+		p.wait()
+		
+		return outfile
+	
+
+	def cleanup(self):
+		"""Remove intermediate files"""
+
+		files = [self.fasta, self.derep, self.sorted]
+		for file in files:
+			os.remove(file)
+
+		
 
 
