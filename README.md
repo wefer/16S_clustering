@@ -1,1 +1,3 @@
-# 16S_clustering
+# 16S rDNA clustering and analysis pipeline
+
+
