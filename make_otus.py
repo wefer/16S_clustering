@@ -107,7 +107,10 @@ class ReadPair(object):
 		
 		files = [self.fwd_adp, self.rev_adp, self.fwd_trim, self.rev_trim, self.merged, self.reheaded]
 		for file in files:
-			os.remove(file)
+			try:
+				os.remove(file)
+			except OSError:
+				pass
 
 
 class CombinedReads(object):
@@ -235,8 +238,10 @@ class CombinedReads(object):
 
 		files = [self.fasta, self.derep, self.sorted, self.taxa]
 		for file in files:
-			os.remove(file)
-
+			try:
+				os.remove(file)
+			except OSError:
+				pass
 		
 
 
