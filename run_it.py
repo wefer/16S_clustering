@@ -15,7 +15,7 @@ def main(sample_folder):
 	if sample_folder[-1] != '/':
 		sample_folder += '/'
 
-	forwards = glob.glob(sample_folder + '*_R1_*.*q')
+	forwards = [f for f in glob.glob(sample_folder + '*_R1_*') if f.endswith('fastq') or f.endswith('fq')]
 	paired = [(x, x.replace('_R1_', '_R2_')) for x in forwards]
 
 	read_pairs = [ReadPair(*x) for x in paired]
