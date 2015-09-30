@@ -124,6 +124,7 @@ class CombinedReads(object):
 		self.otus = self.cluster_otus(self.sorted, self.radius)
 		self.readmap = self.map_to_clusters(self.fasta, self.otus, self.radius)
 		self.taxa = self.assign_taxa(self.otus)
+		self.otu_table = self.convert_to_otu_table(self.readmap)
 		self.parse_taxa()
 
 	def combine_merged_reads(self):
@@ -202,8 +203,15 @@ class CombinedReads(object):
 
 	def convert_to_otu_table(self, readmap):
 		"""Convert to a sensible format"""
+		
+		otu_table = 'otu_table.csv'	
+		with open(otu_table, 'w') as o:	
 
-		pass #IMPLEMENT 
+			cmd = ['python', 'scripts/uc2otutab.py', self.readmap]
+			p = subprocess.Popen(cmd, stdout = o)
+			p.wait()
+
+		return otu_table
 
 
 	def assign_taxa(self, centroids):
